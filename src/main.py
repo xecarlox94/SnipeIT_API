@@ -57,10 +57,16 @@ def get_robot_gen_info(robot):
     else:
         mnt = ""
 
+    loc = ""
+    if robot["location"] is not None:
+        loc = robot["location"]["name"]
+
+    print(loc)
+
     return {
         "id": robot["id"],
         "name": robot["name"],
-        "loc": robot["location"],
+        "loc": loc,
         "cat": robot.get("category"),
         "mnt": mnt
     }
@@ -111,7 +117,7 @@ def create_row_page(robot):
                 }
             ]
         },
-        "IDNumber": {
+        "ID": {
             "type": "number",
             "number": robot['id']
         },
@@ -144,7 +150,7 @@ def create_row_page(robot):
                 {
                     "type": "text",
                     "text": {
-                        "content": "SIUUU",
+                        "content": r["loc"],
                     },
                 }
             ]
