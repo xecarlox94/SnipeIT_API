@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 
 
 from notion_client import Client
-
 import logging
 from notion_client import APIErrorCode, APIResponseError
 
@@ -40,39 +39,39 @@ headers = {
 }
 
 
+print("running")
+
 response = requests.get(url, headers=headers)
+print("running")
 
 body = response.json()
 
 robots = body['rows']
 
 
-get_robot_gen_info = lambda r: {
-    "id": r["id"],
-    "name": r["name"],
-    "location": r["location"],
-    "maintainer": r.get("custom_fields").get("Maintainer")
-}
+def get_robot_gen_info(robot): 
 
-# print(body['total'])
+    mnt = robot.get("custom_fields").get("Maintainer")
+    if mnt is not None:
+        mnt = mnt.get("value")
+    else:
+        mnt = ""
+
+    return {
+        "id": robot["id"],
+        "name": robot["name"],
+        "loc": robot["location"],
+        "cat": robot.get("category"),
+        "mnt": mnt
+    }
+
+
+print(body['total'])
 # print(body.keys())
 
 
-items = list(map(get_robot_gen_info, robots))
 
 
-#print(items)
-
-
-
-
-
-
-
-notion = Client(
-    auth=os.environ["NOTION_API_KEY"],
-    log_level=logging.DEBUG
-)
 
 notion = Client(auth=os.environ["NOTION_API_KEY"])
 
@@ -84,17 +83,72 @@ database = notion.databases.query(
     }
 )
 
-print(json.dumps(database, indent=1))
+db_content = json.dumps(database, indent=1)
+
+print(db_content)
+
+
+
+
+
+print("\n\nEND NOTION DUMP\n\n")
 
 
 
 def create_row_page(robot):
 
+    print(robot)
+
     robot_name = robot['name']
 
     row_page = {
-        "Name": {"title": [{"text": {"content": robot_name}}]},
-        "Tags": {"type": "multi_select", "multi_select": [{"name": "Class 1"}]}
+        "Name": {
+            "title": [
+                {
+                    "text": { 
+                        "content": robot_name 
+                    }
+                }
+            ]
+        },
+        "IDNumber": {
+            "type": "number",
+            "number": robot['id']
+        },
+        "Category": {
+            "type": "rich_text",
+            "rich_text": [
+                {
+                    "type": "text",
+                    "text": {
+                        "content": r['cat']['name']
+                    },
+                }
+            ]
+        },
+        "Maintainer": {
+            "type": "rich_text",
+            "rich_text": [
+                {
+                    "type": "text",
+                    "text": {
+                        "content": r['mnt']
+                    },
+                }
+            ]
+        },
+        "Location": {
+            "id": "%3Fd%5CR",
+            "type": "rich_text",
+            "rich_text": [
+                {
+                    "type": "text",
+                    "text": {
+                        "content": "SIUUU",
+                    },
+                }
+            ]
+        }
     }
 
     notion.pages.create(
@@ -103,9 +157,24 @@ def create_row_page(robot):
     )
 
 
-for r in robots:
-
-    create_row_page(r)
 
 
+robots = list(
+    filter(
+        lambda r: r['cat']['id'] != 6,
+        map(
+            get_robot_gen_info,
+            robots
+        )
+    )
+)
+
+#robots = list(map(lambda r: r['mnt'], robots))
+
+
+for r in robots: create_row_page(r)
+
+
+# "object": "page",
+# "id": "5b0dfed0-8bca-4bc2-a2c7-70ac0ae42e4b",
 
