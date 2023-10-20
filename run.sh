@@ -1,8 +1,13 @@
-docker_run.sh \
-    "\
-        sh \
-    "\
-    "\
-        -v ${PWD}/src:/src \
-        -p 8080:8080 \
-    "
+clear &&\
+    docker_build.sh &&\
+    docker_run.sh \
+        "\
+            sh \
+        "\
+        "\
+            -v ${PWD}/src:/src \
+            --rm \
+            --privileged \
+            --name test \
+        "\
+
