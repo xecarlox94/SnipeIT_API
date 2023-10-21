@@ -156,9 +156,11 @@ pprint("to update")
 to_update = db_entries_keys & robots_keys
 pprint(to_update)
 
-#print("to remove")
-#to_remove_set = db_entries_keys - to_update
-#pprint(to_remove_set)
+print("to remove")
+to_remove_set = db_entries_keys - robots_keys
+pprint(to_remove_set)
+
+
 
 
 def create_row_page(robot):
