@@ -1,3 +1,4 @@
+
 import os, json
 from math import ceil
 
@@ -18,19 +19,19 @@ load_dotenv()
 
 
 
-get_row_robot = lambda robot: {
+get_row_robot = lambda r: {
         "Name": {
             "title": [
                 {
                     "text": {
-                        "content": robot['name']
+                        "content": r['name']
                     }
                 }
             ]
         },
         "ID": {
             "type": "number",
-            "number": robot['id']
+            "number": r['id']
         },
         "Category": {
             "type": "rich_text",
@@ -61,7 +62,7 @@ get_row_robot = lambda robot: {
                 {
                     "type": "text",
                     "text": {
-                        "content": r["loc"],
+                        "content": r["loc"]
                     },
                 }
             ]
@@ -87,6 +88,15 @@ def get_robot_gen_info(robot):
         "cat": robot.get("category"),
         "mnt": mnt
     }
+"""
+    return {
+        "id": robot["id"],
+        "name": robot["name"],
+        "loc": loc,
+        "cat": robot.get("category"),
+        "mnt": mnt
+    }
+"""
 
 
 
@@ -108,7 +118,7 @@ robots_dict = dict(
     map(
         lambda r: (r['id'], r),
         filter(
-            lambda r: r['cat']['id'] != 6,
+            lambda r: r['cat']['id'] != 6 and not r["id"] == 60,
             map(
                 get_robot_gen_info,
                 body['rows']
@@ -139,26 +149,16 @@ db_entries_dict = dict(map(
 ))
 
 
-#pprint(db_entries_dict)
-#pprint(robots_dict)
-
-
 db_entries_keys = set(db_entries_dict.keys())
 robots_keys = set(robots_dict.keys())
 
-pprint(db_entries_keys)
-pprint(robots_keys)
+to_add_set = robots_keys - db_entries_keys
 
-pprint("to add")
-pprint(robots_keys - db_entries_keys)
 
-pprint("to update")
-to_update = db_entries_keys & robots_keys
-pprint(to_update)
+to_update_set = db_entries_keys & robots_keys
 
-print("to remove")
+
 to_remove_set = db_entries_keys - robots_keys
-pprint(to_remove_set)
 
 
 
@@ -170,4 +170,58 @@ def create_row_page(robot):
         },
         properties=get_row_robot(robot)
     )
-#for r in robots: create_row_page(r)
+
+
+def update_row_page(robot, page_id, archived=False):
+    notion.pages.update(
+        parent={
+            "database_id": db_id
+        },
+        properties=get_row_robot(robot),
+        page_id=page_id,
+        archived=archived
+    )
+
+def delete_row_page(page_id):
+
+    robot = {
+        "id": rid,
+        "name": "DELETE",
+        "loc": "DELETE",
+        "cat": {
+            'id': rid,
+            'name': "DELETE"
+        },
+        "mnt": "DELETE"
+    }
+
+    update_row_page(
+        robot,
+        page_id,
+        archived=True
+    )
+
+
+
+for rid in to_update_set:
+
+    robot = robots_dict[rid]
+    page_id = db_entries_dict[rid]
+
+    update_row_page(
+        robot,
+        page_id
+    )
+
+
+for rid in to_remove_set:
+
+    page_id = db_entries_dict[rid]
+
+    delete_row_page(page_id)
+
+
+for r in robots_dict.values():
+
+    create_row_page(r)
+
