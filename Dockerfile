@@ -16,6 +16,7 @@ RUN \
     python -m pip install \
         requests \
         python-dotenv \
+        flask \
         notion-client &&\
     echo "\
             ~/.config/.FILES/scripts/.config/scripts/conf/install.sh \
@@ -25,5 +26,5 @@ RUN \
 WORKDIR /src
 
 
-EXPOSE 8080
+EXPOSE 5000
 
