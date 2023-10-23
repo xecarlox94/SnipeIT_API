@@ -2,7 +2,7 @@ clear &&\
     docker_build.sh &&\
     docker_run.sh \
         "\
-            python3 main.py \
+            sh \
         "\
         "\
             -v ${PWD}/src:/src \
@@ -12,3 +12,4 @@ clear &&\
             --net=host\
         "\
 
+            #python3 main.py \

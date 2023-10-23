@@ -217,7 +217,9 @@ def hello_geek():
         delete_row_page(page_id)
 
 
-    for r in robots_dict.values():
+    for rid in to_add_set:
+
+        r = robots_dict[rid]
 
         create_row_page(r)
 
