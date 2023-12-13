@@ -21,7 +21,9 @@ RUN \
     echo "\
             ~/.config/.FILES/scripts/.config/scripts/conf/install.sh \
         " > ~/set_config.sh &&\
-        chmod +x ~/set_config.sh
+        chmod +x ~/set_config.sh &&\
+    echo "~/set_config.sh" > ~/.bashrc
+
 
 WORKDIR /src
 
