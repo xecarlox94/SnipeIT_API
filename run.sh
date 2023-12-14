@@ -2,7 +2,7 @@ clear &&\
     docker_build.sh &&\
     docker_run.sh \
         "\
-            sh \
+            bash \
         "\
         "\
             -v ${PWD}/src:/src \

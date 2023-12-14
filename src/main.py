@@ -58,7 +58,7 @@ number_cell = lambda v: {
 
 
 get_row_robot = lambda r: {
-    "Name": title_cellr['name'](),
+    "Name": title_cell(r['name']),
     "ID": number_cell(r['id']),
     "Category": text_cell(r['cat']['name']),
     "Maintainer": text_cell(r['mnt']),
@@ -88,13 +88,8 @@ def get_gen_info_robot(robot):
 
 
 
-
-#total=35
-offset=0
-limit=0
-
 get_body = lambda end_point: requests.get(
-    f"https://nationalrobotarium.snipe-it.io/api/v1/{end_point}?offset={offset}&limit={limit}&sort=created_at&order=desc",
+    f"https://nationalrobotarium.snipe-it.io/api/v1/{end_point}?offset=0&limit=0&sort=created_at&order=desc",
     headers={
         "Content-Type": "application/json",
         "Accept": "application/json",
@@ -115,9 +110,11 @@ get_body = lambda end_point: requests.get(
 def hello_geek():
 
 
-    body = get_body("hardware")
-    pprint(body)
+    #body = get_body("hardware")
+    #pprint(body)
 
+
+    body = get_body("hardware")
 
     robots_dict = dict(
         map(
@@ -125,7 +122,7 @@ def hello_geek():
             filter(
                 lambda r: True, #r['cat']['id'] != 6 and not r["id"] == 60,
                 map(
-                    get_robot_gen_info,
+                    get_gen_info_robot,
                     body['rows']
                 )
             )
@@ -134,8 +131,9 @@ def hello_geek():
 
 
     db_id = os.environ["NOTION_DB_ID"]
+    db_id = "3412568aa7914734b22cd1a34b43ad7a"
 
-    get_db_entry = lambda x: (
+    get_db_entry_robots_table = lambda x: (
         x['properties']['ID']['number'],
         x['id']
     )
@@ -152,19 +150,10 @@ def hello_geek():
     }
 
 
-    sync_table(
-        db_id,
-        robots_dict,
-        get_db_entry,
-        get_row_robot,
-        delete_row_robot
-    )
-
-
     def sync_table(
             db_id,
             items_dict,
-            get_db_entry,
+            get_db_entry_table,
             get_row_item,
             delete_row_item,
         ):
@@ -175,11 +164,28 @@ def hello_geek():
             }
         )
 
+        results = database['results']
 
         db_entries_dict = dict(map(
-            get_db_entry,
-            database['results']
+            get_db_entry_table,
+            results
         ))
+
+        pprint(
+            list(
+                map(
+                    lambda x: x['properties']['ID'],
+                    filter(
+                        lambda x: True,
+                        results
+                    )
+                )
+            )
+        )
+
+        # delete_row_page(page_id, iid)
+
+        #return
 
 
         db_entries_keys = set(db_entries_dict.keys())
@@ -249,6 +255,15 @@ def hello_geek():
 
             create_row_page(i)
 
+
+
+    sync_table(
+        db_id,
+        robots_dict,
+        get_db_entry_robots_table,
+        get_row_robot,
+        delete_row_robot
+    )
 
 
     return '\n<h1>Updated Notion!</h1>\n'

@@ -1,13 +1,10 @@
-FROM python:3.11.6-alpine3.18
+FROM python:3.13.0a2
 
-
-ARG BUILD_ENV=prod
-ENV RUN_ENV=
-RUN export BUILD_ENV=
-
+ARG DEBIAN_FRONTEND=noninteractive
 
 RUN \
-    apk add \
+    apt update &&\
+    apt install -y \
         stow \
         vim \
         tmux \
@@ -17,12 +14,7 @@ RUN \
         requests \
         python-dotenv \
         flask \
-        notion-client &&\
-    echo "\
-            ~/.config/.FILES/scripts/.config/scripts/conf/install.sh \
-        " > ~/set_config.sh &&\
-        chmod +x ~/set_config.sh &&\
-    echo "~/set_config.sh" > ~/.bashrc
+        notion-client
 
 
 WORKDIR /src
