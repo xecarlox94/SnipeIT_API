@@ -87,16 +87,38 @@ def get_gen_info_robot(robot):
     }
 
 
+def req_snipeit(f, end_point, body={}):
+    url = f"https://nationalrobotarium.snipe-it.io/api/v1/{end_point}"
 
-get_body = lambda end_point: requests.get(
-    f"https://nationalrobotarium.snipe-it.io/api/v1/{end_point}?offset=0&limit=0&sort=created_at&order=desc",
-    headers={
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Authorization": "Bearer " + os.getenv("SNIPE_API_KEY")
-    }
-).json()
+    print(url)
+    return f(
+        url,
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": "Bearer " + os.getenv("SNIPE_API_KEY")
+        },
+        json=body
+    ).json()
 
+
+get_body = lambda end_point: req_snipeit(
+    requests.get,
+    end_point
+)
+
+
+req_post = lambda end_point, body: req_snipeit(
+    requests.post,
+    end_point,
+    body=body
+)
+
+req_patch = lambda end_point, body: req_snipeit(
+    requests.patch,
+    end_point,
+    body
+)
 
 
 # CONSUMABLES endpoint
@@ -110,11 +132,32 @@ get_body = lambda end_point: requests.get(
 def hello_geek():
 
 
-    #body = get_body("hardware")
+    #body = get_body("hardware?offset=0&limit=0&sort=created_at&order=desc")
     #pprint(body)
 
 
-    body = get_body("hardware")
+    consumable = get_body("consumables?offset=0&limit=0&sort=created_at&order=desc")['rows'][0]
+
+    cat_id = consumable['category']['id']
+    name = consumable['name']
+    qty = consumable['qty']
+
+    cons_id = consumable['id']
+    pprint(consumable)
+    pprint(cons_id)
+    print(qty)
+
+    #if qty > 0: qty = qty - 1
+
+    req_post(
+        f"consumables/{cons_id}/checkout",
+        {
+            "assigned_to": 9
+        }
+    )
+
+
+    return "done"
 
     robots_dict = dict(
         map(
