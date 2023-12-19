@@ -131,28 +131,25 @@ req_patch = lambda end_point, body: req_snipeit(
 @app.route('/')
 def hello_geek():
 
+    """
+    ID=9
 
-    #body = get_body("hardware?offset=0&limit=0&sort=created_at&order=desc")
-    #pprint(body)
+    USER_ID=5
 
-
-    consumable = get_body("consumables?offset=0&limit=0&sort=created_at&order=desc")['rows'][0]
-
-    cat_id = consumable['category']['id']
-    name = consumable['name']
-    qty = consumable['qty']
-
-    cons_id = consumable['id']
-    pprint(consumable)
-    pprint(cons_id)
-    print(qty)
-
-    #if qty > 0: qty = qty - 1
+    curl \
+        --request POST \
+        --url "$NR_URL/consumables/$ID/checkout" \
+        --header "Authorization: Bearer $API_KEY" \
+        --header "accept: application/json" \
+        --header "content-type: application/json" \
+        -d "{\"assigned_to\": $USER_ID}"
+    """
+    CONSUMABLE_ID=9
 
     req_post(
-        f"consumables/{cons_id}/checkout",
+        f"consumables/{9}/checkout",
         {
-            "assigned_to": 9
+            "assigned_to": 5
         }
     )
 
@@ -173,8 +170,8 @@ def hello_geek():
     )
 
 
-    db_id = os.environ["NOTION_DB_ID"]
-    db_id = "3412568aa7914734b22cd1a34b43ad7a"
+    db_id_robots = os.environ["NOTION_DB_ID"]
+    db_id_robots = "3412568aa7914734b22cd1a34b43ad7a"
 
     get_db_entry_robots_table = lambda x: (
         x['properties']['ID']['number'],
