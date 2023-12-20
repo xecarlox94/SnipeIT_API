@@ -126,6 +126,8 @@ def sync_table(
         delete_row_item,
     ):
 
+    print(db_id)
+
     database = notion.databases.query(
         **{
             "database_id": db_id
@@ -230,6 +232,8 @@ def sync_table(
 @app.route('/')
 def hello_geek():
 
+
+
     # ManufacturersSuppliers, 8b77ab855e8549da8bc9a85ac508e21d
     # JustPeople, f97734ca13bc4fe9a76b2a2ac6fd95df
 
@@ -237,6 +241,7 @@ def hello_geek():
 
     def sync_assets(
             db_id_assets,
+            assets_dict,
             filterf=lambda i: True,
         ):
 
@@ -276,24 +281,35 @@ def hello_geek():
         }
 
 
-
-        assets_dict = get_items_dict(
-            "hardware",
-            get_gen_info_item=get_gen_info_asset,
-            filterf=filterf,
-        )
-
-
         sync_table(
             db_id_assets,
             assets_dict,
-            get_db_entry_assets_table,
+            get_db_entry_asset_table,
             get_row_asset,
             delete_row_asset
         )
-    # Assets, 5e0b53e5311f4056b0b53ccd48755df6
-    # AssetsUnavailableRepair, fd3baece672c41bf820f7286111ff495
-    # AssetsWarrantyExpiring, 795d2cb803ff4fab8280a0c3798a6dac
+
+
+    # Assets, "65d8908c2a18400c9ffc25de796611c0"
+    # AssetsUnavailableRepair, "77e76d14c4d64f4297630bc4fe18487a"
+    # AssetsWarrantyExpiring, "0bd595cdbe9d446e89cafc920fef07e7"
+
+
+    assets_dict = get_items_dict(
+        "hardware",
+    )
+
+    print(assets_dict)
+
+    sync_assets(
+        "0bd595cdbe9d446e89cafc920fef07e7",
+        assets_dict,
+        filterf=lambda i: True,
+    )
+
+
+
+    print(assets_dict)
 
 
     return "Hello"
