@@ -189,17 +189,18 @@ def sync_table(
             },
             properties=get_row_item(item),
             page_id=page_id,
-            archived=archived
+            archived=False
         )
 
     def delete_row_page(page_id, iid):
-
-        update_row_page(
-            delete_row_item(iid),
-            page_id,
+        notion.pages.update(
+            parent={
+                "database_id": db_id
+            },
+            properties={},
+            page_id=page_id,
             archived=True
         )
-
 
 
     for iid in to_update_set:
@@ -381,15 +382,13 @@ def hello_geek():
         }
 
 
-        f_pcs = lambda r: (
-            "Computer" in r['cat']
-        )
+        f_pcs = lambda r_cat: "Robot" in r_cat
 
 
         robots_dict = get_items_dict(
             "hardware",
             get_gen_info_item=get_gen_info_robot,
-            filterf=lambda r: filterf(r) or f_pcs(r),
+            filterf=lambda r: filterf(r) and f_pcs(r['cat']['name']),
         )
 
 
