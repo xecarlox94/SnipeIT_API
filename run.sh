@@ -8,8 +8,8 @@ clear &&\
             -v ${PWD}/src:/src \
             --rm \
             --name test \
-            -p 5000:5000 \
             --net=host\
         "\
 
+            #-p 5000:5000 \
             #python3 main.py \
