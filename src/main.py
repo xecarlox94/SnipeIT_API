@@ -209,21 +209,17 @@ def sync_table(
 
 
 
-# CONSUMABLES endpoint
-#
-#
-# post_consume = lambda
-# @app.route("...")
-# def consume_item():
-# CONSUMABLE_ID=9
-# USER_ID=5
-#
-# req_post(
-#     f"consumables/{CONSUMABLE_ID}/checkout",
-#     {
-#         "assigned_to": USER_ID
-#     }
-# )
+@app.route("/checkout/consumable/<cons_id>")
+def consume_item(cons_id):
+
+    USER_ID=5
+
+    req_post(
+        f"consumables/{cons_id}/checkout",
+        {
+            "assigned_to": USER_ID
+        }
+    )
 
 
 
