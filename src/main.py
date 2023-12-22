@@ -211,13 +211,12 @@ def sync_table(
 
 
 
-@app.route("/checkout/consumable/<cons_id>")
-def consume_item(cons_id):
+@app.route("/checkout/consumable/<CONS_ID>")
 
     USER_ID=5
 
     req_post(
-        f"consumables/{cons_id}/checkout",
+        f"consumables/{CONS_ID}/checkout",
         {
             "assigned_to": USER_ID
         }
