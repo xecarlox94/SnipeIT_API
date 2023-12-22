@@ -212,6 +212,7 @@ def sync_table(
 
 
 @app.route("/checkout/consumable/<CONS_ID>")
+def consume_item(CONS_ID):
 
     USER_ID=5
 
