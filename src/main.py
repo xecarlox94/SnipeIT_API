@@ -1,21 +1,24 @@
 import os, json
 
+from functools import reduce
 from math import ceil
-
-import requests
-from dotenv import load_dotenv
-
 from pprint import pprint
 
-from notion_client import Client
-import logging
-from notion_client import APIErrorCode, APIResponseError
+import requests
 
+from dotenv import load_dotenv
+
+from notion_client import Client
+from notion_client import APIErrorCode, APIResponseError
+from notion_client.helpers import iterate_paginated_api
+
+import logging
 
 from flask import Flask
 
-app = Flask(__name__)
 
+
+app = Flask(__name__)
 
 load_dotenv()
 
@@ -96,15 +99,17 @@ req_patch = lambda end_point, body: req_snipeit(
 )
 
 
+get_item_rows = lambda item_type: req_get(
+    f"{item_type}?offset=0&limit=0"
+)['rows']
+
 
 def get_items_dict(
-        item_type,
+        item_rows,
         get_gen_info_item=lambda x:x,
         filterf=lambda i: True,
         get_item_id=lambda i: i['id'],
     ):
-
-    item_rows = req_get(f"{item_type}?offset=0&limit=0")['rows']
 
     return dict(
         map(
@@ -124,14 +129,12 @@ def get_items_dict(
 def sync_table(
         db_id,
         items_dict,
-        get_db_entry_table,
         get_row_item,
-        delete_row_item,
+        get_db_entry_table=lambda x: (
+            x['properties']['ID']['number'],
+            x['id']
+        ),
     ):
-
-
-    from notion_client.helpers import iterate_paginated_api
-    from functools import reduce
 
 
     blocks = iterate_paginated_api(
@@ -152,25 +155,15 @@ def sync_table(
 
 
     db_entries_keys = set(db_entries_dict.keys())
-    print(db_entries_keys)
-    print(len(db_entries_keys))
 
 
     items_keys = set(items_dict.keys())
-    print(items_keys)
-    print(len(items_keys))
 
     to_add_set = items_keys - db_entries_keys
-    print("to add: ", to_add_set)
-
 
     to_update_set = db_entries_keys & items_keys
-    print("to update: ", to_update_set)
-
 
     to_remove_set = db_entries_keys - items_keys
-    print("to remove: ", to_remove_set)
-
 
 
     def create_row_page(item):
@@ -229,6 +222,192 @@ def sync_table(
 
 
 
+def sync_robots(
+        db_id,
+        assets_rows,
+        filterf=lambda i: True,
+    ):
+
+
+    def get_gen_info_robot(robot):
+
+        mnt = robot.get("custom_fields").get("Maintainer")
+        if mnt is not None:
+            mnt = mnt.get("value")
+        else:
+            mnt = ""
+
+        loc = ""
+        if robot["location"] is not None:
+            loc = robot["location"]["name"]
+
+        return {
+            "id": robot["id"],
+            "name": robot["name"],
+            "loc": loc,
+            "cat": robot.get("category"),
+            "mnt": mnt
+        }
+
+
+    get_row_robot = lambda r: {
+        "Name": title_cell(r['name']),
+        "ID": number_cell(r['id']),
+        "Category": text_cell(r['cat']['name']),
+        "Maintainer": text_cell(r['mnt']),
+        "Location": text_cell(r['loc']),
+    }
+
+
+    f_pcs = lambda r_cat: "Robot" in r_cat
+
+
+    robots_dict = get_items_dict(
+        assets_rows,
+        get_gen_info_item=get_gen_info_robot,
+        filterf=lambda r: filterf(r) and f_pcs(r['cat']['name']),
+    )
+
+
+    sync_table(
+        db_id,
+        robots_dict,
+        get_row_robot,
+    )
+
+
+
+
+
+@app.route('/')
+def hello_geek():
+
+
+    sync_table(
+        dbs_dict["SuppliersManufacturers"],
+        get_items_dict(
+            get_item_rows("manufacturers"), # Need to add Suppliers
+            get_gen_info_item=lambda p:{
+                "id": p["id"],
+                "name": p["name"],
+            }
+        ),
+        lambda p: {
+            "Name": title_cell(p['name']),
+            "ID": number_cell(p['id']),
+        }
+    )
+
+
+    sync_table(
+        dbs_dict["Consumables"],
+        get_items_dict(
+            get_item_rows("consumables"),
+            get_gen_info_item=lambda p:{
+                "id": p["id"],
+                "name": p["name"],
+            }
+        ),
+        lambda p: {
+            "Name": title_cell(p['name']),
+            "ID": number_cell(p['id']),
+        }
+    )
+
+
+    sync_table(
+        dbs_dict["People"],
+        get_items_dict(
+            get_item_rows("users"),
+            get_gen_info_item=lambda p:{
+                "id": p["id"],
+                "name": p["name"],
+            }
+        ),
+        lambda p: {
+            "Name": title_cell(p['name']),
+            "ID": number_cell(p['id']),
+        }
+    )
+
+
+    assets_rows = get_item_rows("hardware")
+
+
+    sync_table(
+        dbs_dict["Equipments"],
+        get_items_dict(
+            assets_rows,
+            get_gen_info_item=lambda p:{
+                "id": p["id"],
+                "name": p["name"],
+                "cat": p.get("category")['name']
+            },
+            filterf=lambda p: (
+                ("Robot -" not in p['cat']) or
+                ("Computer -" not in p['cat'])
+            )
+        ),
+        lambda p: {
+            "Name": title_cell(p['name']),
+            "ID": number_cell(p['id']),
+        }
+    )
+
+
+    sync_table(
+        dbs_dict["Assets_UnavailableRepair"],
+        get_items_dict(
+            assets_rows,
+            get_gen_info_item=lambda p:{
+                "id": p["id"],
+                "name": p["name"],
+                "cat": p.get("category")['name']
+            },
+            filterf=lambda p: (
+                ("Robot -" not in p['cat']) or
+                ("Computer -" not in p['cat'])
+            )
+        ),
+        lambda p: {
+            "Name": title_cell(p['name']),
+            "ID": number_cell(p['id']),
+        }
+    )
+
+
+    sync_table(
+        dbs_dict["Assets_WarrantyExpiring"],
+        get_items_dict(
+            assets_rows,
+            get_gen_info_item=lambda p:{
+                "id": p["id"],
+                "name": p["name"],
+                "cat": p.get("category")['name']
+            },
+            filterf=lambda p: (
+                ("Robot -" not in p['cat']) or
+                ("Computer -" not in p['cat'])
+            )
+        ),
+        lambda p: {
+            "Name": title_cell(p['name']),
+            "ID": number_cell(p['id']),
+        }
+    )
+
+
+    sync_robots(
+        dbs_dict["Robots"],
+        assets_rows
+    )
+
+
+    return '\n<h1>Updated Notion!</h1>\n'
+
+
+
+
 
 @app.route("/checkout/consumable/<CONS_ID>")
 def consume_item(CONS_ID):
@@ -244,183 +423,9 @@ def consume_item(CONS_ID):
 
 
 
-@app.route('/')
-def hello_geek():
-
-    """
-    print(dbs_dict["Assets"])
-
-    return "hey"
-
-    def sync_assets(
-            db_id_assets,
-            assets_dict,
-            filterf=lambda i: True,
-        ):
-
-
-        def get_gen_info_asset(asset):
-
-            # mnt = robot.get("custom_fields").get("Maintainer")
-            # if mnt is not None:
-                # mnt = mnt.get("value")
-            # else:
-                # mnt = ""
-            # loc = ""
-            # if robot["location"] is not None:
-                # loc = robot["location"]["name"]
-
-            return {
-                "id": asset["id"],
-                "name": asset["name"],
-            }
-
-
-        get_db_entry_asset_table = lambda x: (
-            x['properties']['ID']['number'],
-            x['id']
-        )
-
-
-        get_row_asset = lambda a: {
-            "Name": title_cell(a['name']),
-            "ID": number_cell(a['id']),
-        }
-
-
-        delete_row_asset = lambda a_id: {
-            "id": a_id,
-            "name": "DELETE",
-        }
-
-
-        sync_table(
-            db_id_assets,
-            assets_dict,
-            get_db_entry_asset_table,
-            get_row_asset,
-            delete_row_asset
-        )
-
-
-    # Assets, "65d8908c2a18400c9ffc25de796611c0"
-    # AssetsUnavailableRepair, "77e76d14c4d64f4297630bc4fe18487a"
-    # AssetsWarrantyExpiring, "0bd595cdbe9d446e89cafc920fef07e7"
-
-
-    assets_dict = get_items_dict(
-        "hardware",
-    )
-
-
-    print(assets_dict)
-
-
-    sync_assets(
-        dbs_dict["0bd595cdbe9d446e89cafc920fef07e7"],
-        assets_dict,
-        filterf=lambda i: True,
-    )
-
-
-    return "Hello"
-    """
-
-
-    def sync_robots(
-            db_id,
-            filterf=lambda i: True,
-        ):
-
-
-        def get_gen_info_robot(robot):
-
-            mnt = robot.get("custom_fields").get("Maintainer")
-            if mnt is not None:
-                mnt = mnt.get("value")
-            else:
-                mnt = ""
-
-            loc = ""
-            if robot["location"] is not None:
-                loc = robot["location"]["name"]
-
-            return {
-                "id": robot["id"],
-                "name": robot["name"],
-                "loc": loc,
-                "cat": robot.get("category"),
-                "mnt": mnt
-            }
-
-
-
-        get_db_entry_robots_table = lambda x: (
-            x['properties']['ID']['number'],
-            x['id']
-        )
-
-
-        get_row_robot = lambda r: {
-            "Name": title_cell(r['name']),
-            "ID": number_cell(r['id']),
-            "Category": text_cell(r['cat']['name']),
-            "Maintainer": text_cell(r['mnt']),
-            "Location": text_cell(r['loc']),
-        }
-
-
-        delete_row_robot = lambda rid: {
-            "id": rid,
-            "name": "DELETE",
-            "loc": "DELETE",
-            "cat": {
-                'id': rid,
-                'name': "DELETE"
-            },
-            "mnt": "DELETE"
-        }
-
-
-        f_pcs = lambda r_cat: "Robot" in r_cat
-
-
-        robots_dict = get_items_dict(
-            "hardware",
-            get_gen_info_item=get_gen_info_robot,
-            filterf=lambda r: filterf(r) and f_pcs(r['cat']['name']),
-        )
-
-
-
-        sync_table(
-            db_id,
-            robots_dict,
-            get_db_entry_robots_table,
-            get_row_robot,
-            delete_row_robot
-        )
-
-    sync_robots(
-        dbs_dict["Robots"]
-    )
-
-    """
-    # ConsumablesPurchaseHistory, 817259b1f9ba45e583c335f7b19eb800
-    consumable_actions = get_items_dict(
-        "reports/activity",
-        filterf=lambda i: i['action_type'] == 'create new' and (
-            True #i['item']['type'] in ['consumable']
-        ),
-    )
-    pprint(list(map(lambda i: i['item']['type'] == 'consumable', consumable_actions)))
-    """
-
-
-    return '\n<h1>Updated Notion!</h1>\n'
-
-
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+
 
