@@ -1,5 +1,5 @@
-
 import os, json
+
 from math import ceil
 
 import requests
@@ -13,11 +13,14 @@ from notion_client import APIErrorCode, APIResponseError
 
 
 from flask import Flask
+
 app = Flask(__name__)
 
 
 load_dotenv()
 
+
+dbs_dict = json.load(open("notion_dbs.json"))
 
 
 
@@ -126,15 +129,21 @@ def sync_table(
         delete_row_item,
     ):
 
-    print(db_id)
 
-    database = notion.databases.query(
-        **{
-            "database_id": db_id
-        }
+    from notion_client.helpers import iterate_paginated_api
+    from functools import reduce
+
+
+    blocks = iterate_paginated_api(
+        notion.databases.query, database_id=db_id
     )
 
-    results = database['results']
+    results = reduce(
+        lambda l, i: l + i,
+        list(blocks),
+        []
+    )
+
 
     db_entries_dict = dict(map(
         get_db_entry_table,
@@ -143,15 +152,24 @@ def sync_table(
 
 
     db_entries_keys = set(db_entries_dict.keys())
+    print(db_entries_keys)
+    print(len(db_entries_keys))
+
+
     items_keys = set(items_dict.keys())
+    print(items_keys)
+    print(len(items_keys))
 
     to_add_set = items_keys - db_entries_keys
+    print("to add: ", to_add_set)
 
 
     to_update_set = db_entries_keys & items_keys
+    print("to update: ", to_update_set)
 
 
     to_remove_set = db_entries_keys - items_keys
+    print("to remove: ", to_remove_set)
 
 
 
@@ -228,12 +246,10 @@ def consume_item(CONS_ID):
 @app.route('/')
 def hello_geek():
 
+    """
+    print(dbs_dict["Assets"])
 
-
-    # ManufacturersSuppliers, 8b77ab855e8549da8bc9a85ac508e21d
-    # JustPeople, f97734ca13bc4fe9a76b2a2ac6fd95df
-
-
+    return "hey"
 
     def sync_assets(
             db_id_assets,
@@ -295,28 +311,23 @@ def hello_geek():
         "hardware",
     )
 
+
     print(assets_dict)
 
+
     sync_assets(
-        "0bd595cdbe9d446e89cafc920fef07e7",
+        dbs_dict["0bd595cdbe9d446e89cafc920fef07e7"],
         assets_dict,
         filterf=lambda i: True,
     )
 
 
-
-    print(assets_dict)
-
-
     return "Hello"
+    """
 
-
-
-    #db_id_robots = os.environ["NOTION_DB_ID"]
-    db_id_robots = "3412568aa7914734b22cd1a34b43ad7a"
 
     def sync_robots(
-            db_id, # Robots, 3412568aa7914734b22cd1a34b43ad7a
+            db_id,
             filterf=lambda i: True,
         ):
 
@@ -370,24 +381,30 @@ def hello_geek():
         }
 
 
+        f_pcs = lambda r: (
+            "Computer" in r['cat']
+        )
+
 
         robots_dict = get_items_dict(
             "hardware",
             get_gen_info_item=get_gen_info_robot,
-            filterf=lambda i: True,
+            filterf=lambda r: filterf(r) or f_pcs(r),
         )
 
 
-        pprint(robots_dict)
-
 
         sync_table(
-            db_id_robots,
+            db_id,
             robots_dict,
             get_db_entry_robots_table,
             get_row_robot,
             delete_row_robot
         )
+
+    sync_robots(
+        dbs_dict["Robots"]
+    )
 
     """
     # ConsumablesPurchaseHistory, 817259b1f9ba45e583c335f7b19eb800
